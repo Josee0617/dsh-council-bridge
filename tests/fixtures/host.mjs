@@ -105,8 +105,13 @@ export function apply(ctx) {
       assert.equal(events.filter(event => event.type === 'step/start').length, stepsBefore, 'Unexpected parent model completion')
       await ctx.sessions.flush(agent.session)
       await handle.dispose()
-      const reloaded = await ctx.sessionPersistence.load(agent.id)
-      assert(reloaded.events.some(event => event.type === 'command/done' && event.data.text?.includes('HOST_VERIFIED_FINAL')), 'Final result must survive cold reload')
+      const stored = await ctx.sessionPersistence.open(agent.id, 'read')
+      try {
+        const reloaded = await stored.read()
+        assert(reloaded.events.some(event => event.type === 'command/done' && event.data.text?.includes('HOST_VERIFIED_FINAL')), 'Final result must survive cold reload')
+      } finally {
+        await stored.close()
+      }
     }
     await Promise.all(guardChecks)
     assert.equal(guardChecks.length, 8)

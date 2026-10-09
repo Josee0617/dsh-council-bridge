@@ -92,7 +92,7 @@ function harness(
     sessionTitle: {
       rename(_session: unknown, title: string) { renamed.push(title) },
     },
-    settings: { get: () => ({ preference: locale }) },
+    settings: { describe: () => [{ ns: 'locale', value: { preference: locale } }] },
     sessionProjections: {
       snapshot: (session: { blank: boolean }) => ({
         asOfSeq: -1,
@@ -140,10 +140,10 @@ function harness(
     on(event: string, listener: PreStepListener | SettingsListener | typeof agentCreated) {
       if (event === 'agent/created') agentCreated = listener as typeof agentCreated
       if (event === 'agent/pre-step') preStep = listener as PreStepListener
-      if (event === 'settings/updated') settingsUpdated = listener as SettingsListener
+      if (event === 'settings/document-updated') settingsUpdated = listener as SettingsListener
       return () => {
         if (event === 'agent/pre-step') preStep = undefined
-        if (event === 'settings/updated') settingsUpdated = undefined
+        if (event === 'settings/document-updated') settingsUpdated = undefined
       }
     },
     effect(factory: () => Generator<unknown, void, unknown>) {
@@ -291,6 +291,7 @@ describe('DSH command integration', () => {
     expect(test.renamed).toEqual(['议会'])
 
     test.setLocale('en')
+    await Promise.resolve()
     expect(test.command()?.description).toBe('Run an anonymous multi-model council')
   })
 
@@ -418,6 +419,6 @@ describe('DSH command integration', () => {
     { reviewMaxTokens: 1.5 }, { arbiterMaxTokens: Infinity }, { subagentProvider: ' ' },
     { runTimeoutMs: 1 },
   ])('rejects invalid configuration before registering the command: %o', (override) => {
-    expect(() => harness(undefined, undefined, 'en', { ...config, ...override })).toThrow('dsh-council:')
+    expect(() => harness(undefined, undefined, 'en', { ...config, ...override })).toThrow('dsh-council-bridge:')
   })
 })

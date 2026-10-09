@@ -1,7 +1,7 @@
 <div align="center">
 
 <p><strong>English</strong> · <a href="README.zh.md">简体中文</a></p>
-<h1>DSH Council</h1>
+<h1>Council Bridge</h1>
 <p><strong>Independent answers. Anonymous reviews. One reasoned decision.</strong></p>
 <p>Multi-model deliberation inside <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>.</p>
 
@@ -20,6 +20,8 @@ https://github.com/user-attachments/assets/e81dfa36-5d93-4efb-8c67-015a5e4d2179
 </div>
 
 ---
+
+Council Bridge is a Desktop compatibility fork of [DSH Council](https://github.com/a1exsun/dsh-council), maintained by Josee0617. The upstream MIT license and credits are preserved. This release targets **DeepSeek Harness 0.2.0-rc.2**.
 
 ## How it works
 
@@ -52,7 +54,7 @@ https://github.com/user-attachments/assets/e81dfa36-5d93-4efb-8c67-015a5e4d2179
 
 Install [DeepSeek Harness (dsh)](https://www.deepseek.com/harness/) by following the official installation guide.
 
-### 2. Install DSH Council
+### 2. Install Council Bridge
 
 <table>
 <tr>
@@ -67,20 +69,24 @@ Install [DeepSeek Harness (dsh)](https://www.deepseek.com/harness/) by following
 </tr>
 </table>
 
-Install the prebuilt package from npm:
+Download `josee0617-dsh-council-bridge-0.1.0.tgz` from the [v0.1.0 release](https://github.com/Josee0617/dsh-council-bridge/releases/tag/v0.1.0).
+
+In **DeepSeek Harness Desktop → Plugins → Add plugin**, paste the downloaded `.tgz` file's absolute path. Install and enable **Council Bridge**. Use the release asset; the source archive does not contain the compiled plugin.
+
+For the supported Web runtime:
 
 ```sh
-npx --yes @deepseek-ai/dsh@latest plugin --profile web add @a1exsun/dsh-council@0.1.0
-npx --yes @deepseek-ai/dsh@latest web
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.0.tgz
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 web
 ```
 
-<blockquote><p>Restart DSH Web if it is already running.</p></blockquote>
+Restart DSH Web if it is already running. Configure your model providers before opening the council picker. This package is distributed through GitHub Releases, not npm.
 
-No source checkout or compilation is required. See [Contributing](CONTRIBUTING.md) for development setup.
+The compatibility fixes update locale settings access, locale-change command registration, and the saved-session message source required by session format v4. Tests use fixture model responses; they do not establish live provider compatibility or model quality. Retest before updating Harness.
 
 ## Usage
 
-Enter this command in a DSH Web conversation:
+Enter this command in a DSH Desktop or Web conversation:
 
 ```text
 /council
@@ -134,10 +140,10 @@ Enter this command in a DSH Web conversation:
 <details>
 <summary><strong>Defaults and overrides</strong></summary>
 
-The defaults work without additional configuration. To adjust limits, set `config` on the `dsh-council` entry in your DSH profile:
+The defaults work without additional configuration. To adjust limits, set `config` on the `dsh-council-bridge` entry in your DSH profile:
 
 ```yaml
-- id: dsh-council
+- id: dsh-council-bridge
   config:
     answerMaxTokens: 16384
     reviewMaxTokens: 16384

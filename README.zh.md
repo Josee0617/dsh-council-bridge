@@ -1,7 +1,7 @@
 <div align="center">
 
 <p><a href="README.md">English</a> · <strong>简体中文</strong></p>
-<h1>DSH Council</h1>
+<h1>Council Bridge</h1>
 <p><strong>独立作答，匿名互评，汇总裁决。</strong></p>
 <p>运行在 <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a> 对话中的多模型议会插件。</p>
 
@@ -52,7 +52,7 @@ https://github.com/user-attachments/assets/e81dfa36-5d93-4efb-8c67-015a5e4d2179
 
 前往 [DeepSeek Harness（dsh）官网](https://www.deepseek.com/harness/)，按照官方指南完成安装。
 
-### 2. 安装 DSH Council
+### 2. 安装 Council Bridge
 
 <table>
 <tr>
@@ -67,16 +67,22 @@ https://github.com/user-attachments/assets/e81dfa36-5d93-4efb-8c67-015a5e4d2179
 </tr>
 </table>
 
-从 npm 安装已编译的插件包：
+Council Bridge 是 [DSH Council](https://github.com/a1exsun/dsh-council) 的桌面兼容性分支，保留上游 MIT 许可证和作者署名。本版本支持 **DeepSeek Harness 0.2.0-rc.2**。
+
+从 [v0.1.0 发布页面](https://github.com/Josee0617/dsh-council-bridge/releases/tag/v0.1.0) 下载 `josee0617-dsh-council-bridge-0.1.0.tgz`。
+
+在 **DeepSeek Harness Desktop → Plugins → Add plugin** 中输入下载文件的绝对路径，安装并启用 Council Bridge。请使用 `.tgz` 发布附件；源码压缩包不包含已编译插件。
+
+Web 安装方式：
 
 ```sh
-npx --yes @deepseek-ai/dsh@latest plugin --profile web add @a1exsun/dsh-council@0.1.0
-npx --yes @deepseek-ai/dsh@latest web
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.0.tgz
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 web
 ```
 
-<blockquote><p>如果 DSH Web 已在运行，请重启。</p></blockquote>
+如果 DSH Web 已在运行，请重启。插件通过 GitHub Releases 分发，未发布到 npm。请先配置模型提供方。
 
-无需克隆源码或编译。开发环境设置请参阅[贡献指南](CONTRIBUTING.md)。
+兼容性修复包括语言设置读取、语言更新后的命令注册，以及会话格式 v4 所需的消息来源类型。测试使用固定模型响应，不代表已验证真实模型提供方。升级 Harness 后请重新测试。
 
 ## 使用
 
@@ -134,10 +140,10 @@ npx --yes @deepseek-ai/dsh@latest web
 <details>
 <summary><strong>默认配置与自定义限额</strong></summary>
 
-默认配置可直接使用。如需调整限额，在 DSH profile 的 `dsh-council` 条目中设置 `config`：
+默认配置可直接使用。如需调整限额，在 DSH profile 的 `dsh-council-bridge` 条目中设置 `config`：
 
 ```yaml
-- id: dsh-council
+- id: dsh-council-bridge
   config:
     answerMaxTokens: 16384
     reviewMaxTokens: 16384

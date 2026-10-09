@@ -26,7 +26,13 @@ import { copyForSettings, type CouncilCopy } from './locales.js'
 import { renderCouncilResult, renderFailureAudit } from './protocol.js'
 import type { CatalogFailure, ModelDirectory, ModelRef } from './types.js'
 
-export const name = 'dsh-council'
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'dsh-council-bridge': { kind: 'dsh-council-bridge' }
+  }
+}
+
+export const name = 'dsh-council-bridge'
 export const inject = [
   'commands',
   'llm',
@@ -50,6 +56,11 @@ export const Config: z<Config> = z.object({
 })
 
 const WEB_TOOLS = ['web_search', 'web_fetch'] as const
+
+function currentCopy(ctx: Context): CouncilCopy {
+  const locale = ctx.settings.describe({ redactSecrets: true }).find(row => row.ns === 'locale')
+  return copyForSettings(locale?.value)
+}
 
 interface BlankRetention {
   readonly messageId: string
@@ -82,7 +93,7 @@ async function retainBlankCommandSession(
 ): Promise<void> {
   const message = createUserMessage({
     content: [],
-    source: { kind: 'plugin', plugin: name },
+    source: { kind: name },
   })
   const retention: BlankRetention = { messageId: String(message.id), consumed: false }
   const agentId = String(agent.id)
@@ -283,12 +294,12 @@ export function apply(ctx: Context, config: Config): void {
   for (const key of ['answerMaxTokens', 'reviewMaxTokens', 'arbiterMaxTokens', 'childTimeoutMs', 'runTimeoutMs'] as const) {
     if (!Number.isSafeInteger(config[key]) || config[key] < 1
       || (key.endsWith('TimeoutMs') && config[key] > 2_147_483_647)) {
-      throw new Error(`dsh-council: ${key} must be a positive integer within the supported range`)
+      throw new Error(`dsh-council-bridge: ${key} must be a positive integer within the supported range`)
     }
   }
-  if (!config.subagentProvider.trim()) throw new Error('dsh-council: subagentProvider must not be empty')
+  if (!config.subagentProvider.trim()) throw new Error('dsh-council-bridge: subagentProvider must not be empty')
   if (config.runTimeoutMs < config.childTimeoutMs) {
-    throw new Error('dsh-council: runTimeoutMs must be greater than or equal to childTimeoutMs')
+    throw new Error('dsh-council-bridge: runTimeoutMs must be greater than or equal to childTimeoutMs')
   }
   const activeAgents = new Set<string>()
   const activeOperations = new Set<Promise<CommandResult>>()
@@ -329,7 +340,7 @@ export function apply(ctx: Context, config: Config): void {
     return { ...decision, messages: decision.messages.filter(message => String(message.id) !== retention.messageId) }
   }, { global: true, prepend: true })
   const handler = (invocation: CommandInvocation): Promise<CommandResult> => {
-    const copy = copyForSettings(ctx.settings.get('locale'))
+    const copy = currentCopy(ctx)
     const agentId = String(invocation.agent.id)
     if (activeAgents.has(agentId)) {
       return Promise.resolve({ kind: 'error', text: copy.alreadyRunning })
@@ -347,13 +358,13 @@ export function apply(ctx: Context, config: Config): void {
 
   ctx.effect(function* () {
     yield async () => {
-      lifecycle.abort(new Error('dsh-council plugin disposed'))
+      lifecycle.abort(new Error('dsh-council-bridge plugin disposed'))
       await Promise.allSettled(activeOperations)
     }
     let disposeCommand = (): void => {}
     const registerCommand = (): void => {
       disposeCommand()
-      const copy = copyForSettings(ctx.settings.get('locale'))
+      const copy = currentCopy(ctx)
       disposeCommand = ctx.commands.register({
         name: 'council',
         description: copy.commandDescription,
@@ -362,14 +373,18 @@ export function apply(ctx: Context, config: Config): void {
       })
     }
     registerCommand()
-    const disposeLocaleWatch = ctx.on('settings/updated', (namespace) => {
-      if (String(namespace) === 'locale') registerCommand()
+    const disposeLocaleWatch = ctx.on('settings/document-updated', (namespace) => {
+      if (String(namespace) !== 'locale') return
+      // describe() can publish revisions; register after that projection settles.
+      queueMicrotask(() => {
+        if (!lifecycle.signal.aborted) registerCommand()
+      })
     })
     yield () => {
       disposeLocaleWatch()
       disposeCommand()
     }
-  }, 'dsh-council lifecycle')
+  }, 'dsh-council-bridge lifecycle')
 }
 
 export type {

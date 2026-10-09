@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdtempSync, copyFileSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -22,8 +22,8 @@ try {
   assert(packed.files.some(file => file.path === 'cordis.patch.yml'))
   assert(!packed.files.some(file => /(?:tests|scripts|node_modules)\//.test(file.path)))
   writeFileSync(join(temporary, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
-  // Resolve the actual latest host on every smoke run, independent of the development lockfile.
-  const version = execFileSync(npm, ['view', '@deepseek-ai/dsh@latest', 'version'], { encoding: 'utf8', timeout: 30_000 }).trim()
+  // Resolve the actual supported host on every smoke run, independent of the development lockfile.
+  const version = manifest.engines.dsh
   process.stdout.write(`Testing packed plugin against DSH ${version}\n`)
   run(npm, ['install', '--no-audit', '--no-fund', `@deepseek-ai/dsh@${version}`])
   const bin = join(temporary, 'node_modules/@deepseek-ai/dsh/lib/bin.js')
