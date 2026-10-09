@@ -95,11 +95,21 @@ export function apply(ctx) {
       }
       const stepsBefore = agent.session.snapshotEvents().filter(event => event.type === 'step/start').length
       process.stdout.write(`SMOKE ${locale} invoking council\n`)
-      const execution = await ctx.commands.execute(agent, '/council', [], new AbortController().signal)
+      const finished = new Promise(resolve => {
+        const dispose = ctx.on('session/event', (session, event) => {
+          if (session !== agent.session || event.type !== 'command/done' || !event.data.text?.includes('HOST_VERIFIED_FINAL')) return
+          dispose()
+          resolve(event.data)
+        }, { global: true })
+      })
+      const uiRequest = new AbortController()
+      const execution = await ctx.commands.execute(agent, '/council', [], uiRequest.signal)
       assert.equal(execution?.result.kind, 'success', execution?.result.text)
-      assert(execution.result.text.includes('HOST_VERIFIED_FINAL'))
-      assert(execution.result.text.includes(locale === 'en' ? '# Council Decision' : '# 议会裁决'))
       assert.equal(ctx.sessionProjections.snapshot(agent.session).values.sessionListMetadata.blank, false)
+      uiRequest.abort(new Error('Simulated UI request expiry'))
+      const result = await finished
+      assert.equal(result.kind, 'success', result.text)
+      assert(result.text.includes(locale === 'en' ? '# Council Decision' : '# 议会裁决'))
       const events = agent.session.snapshotEvents()
       assert(events.some(event => event.type === 'command/done' && event.data.text.includes('HOST_VERIFIED_FINAL')))
       assert.equal(events.filter(event => event.type === 'step/start').length, stepsBefore, 'Unexpected parent model completion')

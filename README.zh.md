@@ -69,14 +69,20 @@ https://github.com/user-attachments/assets/e81dfa36-5d93-4efb-8c67-015a5e4d2179
 
 Council Bridge 是 [DSH Council](https://github.com/a1exsun/dsh-council) 的桌面兼容性分支，保留上游 MIT 许可证和作者署名。本版本支持 **DeepSeek Harness 0.2.0-rc.2**。
 
-从 [v0.1.0 发布页面](https://github.com/Josee0617/dsh-council-bridge/releases/tag/v0.1.0) 下载 `josee0617-dsh-council-bridge-0.1.0.tgz`。
+在 **DeepSeek Harness Desktop → Plugins → Add plugin** 中直接粘贴以下发布地址：
 
-在 **DeepSeek Harness Desktop → Plugins → Add plugin** 中输入下载文件的绝对路径，安装并启用 Council Bridge。请使用 `.tgz` 发布附件；源码压缩包不包含已编译插件。
+```text
+https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.1/josee0617-dsh-council-bridge-0.1.1.tgz
+```
+
+安装并启用 Council Bridge。也可下载 `.tgz` 后输入文件的绝对路径。请使用发布附件；源码压缩包不包含已编译插件。
+
+在聊天中单独发送 `/council` 打开设置表单。运行会在命令确认后继续，不会因最初的界面请求超时而中断。使用 `/council cancel` 停止当前会话的运行。空白会话会立即保留，以显示进度和错误。关闭会话或卸载插件会停止运行。
 
 Web 安装方式：
 
 ```sh
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.0.tgz
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.1.tgz
 npx --yes @deepseek-ai/dsh@0.2.0-rc.2 web
 ```
 

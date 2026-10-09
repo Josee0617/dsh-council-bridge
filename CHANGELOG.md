@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- Acknowledge `/council` immediately and run its durable command lifecycle independently of the Desktop HTTP request timeout.
+- Retain blank chats before opening the setup form so progress and errors are visible.
+- Add `/council cancel`; stop owned runs on session disposal or plugin unload.
+- Test completion after the originating UI request is aborted, including persisted reports.
+
+
 ## 0.1.0
 
 Council Bridge forks @a1exsun/dsh-council 0.1.0 for DeepSeek Harness Desktop 0.2.0-rc.2.

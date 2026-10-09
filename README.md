@@ -69,14 +69,20 @@ Install [DeepSeek Harness (dsh)](https://www.deepseek.com/harness/) by following
 </tr>
 </table>
 
-Download `josee0617-dsh-council-bridge-0.1.0.tgz` from the [v0.1.0 release](https://github.com/Josee0617/dsh-council-bridge/releases/tag/v0.1.0).
+In **DeepSeek Harness Desktop → Plugins → Add plugin**, paste this release URL:
 
-In **DeepSeek Harness Desktop → Plugins → Add plugin**, paste the downloaded `.tgz` file's absolute path. Install and enable **Council Bridge**. Use the release asset; the source archive does not contain the compiled plugin.
+```text
+https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.1/josee0617-dsh-council-bridge-0.1.1.tgz
+```
+
+Install and enable **Council Bridge**. You can also download the `.tgz` and use its absolute path. Use the release asset; the source archive does not contain the compiled plugin.
+
+Send `/council` by itself to open the setup form. The run continues in the chat after the command is acknowledged, including if the original UI request expires. Use `/council cancel` in the same chat to stop it. Blank chats are retained immediately so progress and errors stay visible. Closing the session or unloading the plugin stops its run.
 
 For the supported Web runtime:
 
 ```sh
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.0.tgz
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.1.tgz
 npx --yes @deepseek-ai/dsh@0.2.0-rc.2 web
 ```
 

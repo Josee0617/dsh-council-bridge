@@ -9,6 +9,9 @@ export interface CouncilCopy {
   readonly commandDescription: string
   readonly usage: string
   readonly alreadyRunning: string
+  readonly started: string
+  readonly stopping: string
+  readonly notRunning: string
   readonly canceled: string
   readonly unknownFailure: string
   readonly projectionMissing: string
@@ -83,8 +86,11 @@ const en: CouncilCopy = {
   languageName: 'English',
   sessionTitle: 'Council',
   commandDescription: 'Run an anonymous multi-model council',
-  usage: 'Usage: /council (no arguments)',
+  usage: 'Usage: /council to start, or /council cancel to stop',
   alreadyRunning: 'A Council run is already active in this session.',
+  started: 'Council is running. Complete the setup form, then watch this chat for the report. Use /council cancel to stop.',
+  stopping: 'Stopping the Council run.',
+  notRunning: 'No Council run is active in this session.',
   canceled: 'Council was canceled.',
   unknownFailure: 'unknown failure',
   projectionMissing: 'DSH session metadata is unavailable.',
@@ -180,8 +186,11 @@ const zh: CouncilCopy = {
   languageName: '简体中文',
   sessionTitle: '议会',
   commandDescription: '运行匿名多模型议会',
-  usage: '用法：/council（不接受参数）',
+  usage: '用法：/council 开始，/council cancel 停止',
   alreadyRunning: '当前会话已有议会正在运行。',
+  started: '议会正在运行。请填写设置表单，然后在此会话中查看报告。使用 /council cancel 停止。',
+  stopping: '正在停止议会。',
+  notRunning: '当前会话没有正在运行的议会。',
   canceled: '议会已取消。',
   unknownFailure: '未知故障',
   projectionMissing: 'DSH 会话元数据不可用。',

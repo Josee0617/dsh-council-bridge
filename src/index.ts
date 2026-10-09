@@ -233,17 +233,14 @@ async function executeCouncil(
   config: Config,
   invocation: CommandInvocation,
   lifecycleSignal: AbortSignal,
-  blankRetentions: Map<string, BlankRetention>,
   copy: CouncilCopy,
   childStarts: AsyncLocalStorage<ChildStart>,
 ): Promise<CommandResult> {
   if (invocation.rawInput.trim() !== '') return { kind: 'error', text: copy.usage }
   const signal = AbortSignal.any([invocation.signal, lifecycleSignal])
-  let startedBlank = false
   let result: CommandResult
   try {
     signal.throwIfAborted()
-    startedBlank = isBlankSession(ctx, invocation.agent, copy)
     const provider = ctx.subagents.getProvider(config.subagentProvider)
     if (provider === undefined) {
       throw new Error(copy.providerMissing(config.subagentProvider))
@@ -277,16 +274,6 @@ async function executeCouncil(
     }
   }
   if (signal.aborted) return { kind: 'error', text: copy.canceled }
-  if (startedBlank) {
-    try {
-      // A user may have started an ordinary turn while the council was running.
-      if (isBlankSession(ctx, invocation.agent, copy)) {
-        await retainBlankCommandSession(ctx, invocation.agent, blankRetentions, copy)
-      }
-    } catch (error: unknown) {
-      return { ...result, text: `${result.text ?? ''}\n\n${copy.failed(messageOf(error, copy.unknownFailure))}` }
-    }
-  }
   return result
 }
 
@@ -301,11 +288,15 @@ export function apply(ctx: Context, config: Config): void {
   if (config.runTimeoutMs < config.childTimeoutMs) {
     throw new Error('dsh-council-bridge: runTimeoutMs must be greater than or equal to childTimeoutMs')
   }
-  const activeAgents = new Set<string>()
-  const activeOperations = new Set<Promise<CommandResult>>()
+  const activeAgents = new Map<string, AbortController>()
+  const activeOperations = new Set<Promise<void>>()
   const blankRetentions = new Map<string, BlankRetention>()
   const lifecycle = new AbortController()
   const childStarts = new AsyncLocalStorage<ChildStart>()
+  const backgroundCommands = new AsyncLocalStorage<{ agent: Agent; copy: CouncilCopy }>()
+  ctx.on('agent/disposed', ({ agent }) => {
+    activeAgents.get(String(agent.id))?.abort()
+  }, { global: true })
   // DSH's restriction preserves child-local registrations (including its
   // delegation tool). Install a final guard before the child receives its prompt.
   ctx.on('agent/created', ({ agent }) => {
@@ -339,21 +330,54 @@ export function apply(ctx: Context, config: Config): void {
     blankRetentions.delete(String(agent.id))
     return { ...decision, messages: decision.messages.filter(message => String(message.id) !== retention.messageId) }
   }, { global: true, prepend: true })
-  const handler = (invocation: CommandInvocation): Promise<CommandResult> => {
+  const handler = async (invocation: CommandInvocation): Promise<CommandResult> => {
+    const background = backgroundCommands.getStore()
+    if (background?.agent === invocation.agent) {
+      return executeCouncil(ctx, config, invocation, lifecycle.signal, background.copy, childStarts)
+    }
     const copy = currentCopy(ctx)
     const agentId = String(invocation.agent.id)
-    if (activeAgents.has(agentId)) {
-      return Promise.resolve({ kind: 'error', text: copy.alreadyRunning })
+    if (invocation.rawInput.trim() === 'cancel') {
+      const controller = activeAgents.get(agentId)
+      if (controller === undefined) return { kind: 'error', text: copy.notRunning }
+      controller.abort()
+      return { kind: 'success', text: copy.stopping }
     }
-    activeAgents.add(agentId)
-    const operation = executeCouncil(ctx, config, invocation, lifecycle.signal, blankRetentions, copy, childStarts)
+    if (invocation.rawInput.trim() !== '') return { kind: 'error', text: copy.usage }
+    if (activeAgents.has(agentId)) {
+      return { kind: 'error', text: copy.alreadyRunning }
+    }
+    const controller = new AbortController()
+    activeAgents.set(agentId, controller)
+    try {
+      invocation.signal.throwIfAborted()
+      lifecycle.signal.throwIfAborted()
+      // Promote the chat before discovery/questions so its command progress is visible.
+      if (isBlankSession(ctx, invocation.agent, copy)) {
+        await retainBlankCommandSession(ctx, invocation.agent, blankRetentions, copy)
+      }
+      invocation.signal.throwIfAborted()
+      controller.signal.throwIfAborted()
+      lifecycle.signal.throwIfAborted()
+    } catch (error: unknown) {
+      activeAgents.delete(agentId)
+      return { kind: 'error', text: copy.failed(messageOf(error, copy.unknownFailure)) }
+    }
+    // The UI request acknowledges immediately. A second registry execution owns
+    // the durable progress/result card, using plugin/session lifetime rather
+    // than the HTTP request's five-minute cancellation signal.
+    const execution = backgroundCommands.run({ agent: invocation.agent, copy }, () =>
+      ctx.commands.execute(invocation.agent, '/council', [], AbortSignal.any([controller.signal, lifecycle.signal])))
+    const operation = execution.then(() => {}, (error: unknown) => {
+      ctx.logger.warn('Council background command failed: %s', messageOf(error, copy.unknownFailure))
+    })
     activeOperations.add(operation)
     const retire = (): void => {
       activeAgents.delete(agentId)
       activeOperations.delete(operation)
     }
     void operation.then(retire, retire)
-    return operation
+    return { kind: 'success', text: copy.started }
   }
 
   ctx.effect(function* () {
@@ -368,6 +392,7 @@ export function apply(ctx: Context, config: Config): void {
       disposeCommand = ctx.commands.register({
         name: 'council',
         description: copy.commandDescription,
+        input: { hint: copy.usage },
         recordInput: false,
         handler,
       })
