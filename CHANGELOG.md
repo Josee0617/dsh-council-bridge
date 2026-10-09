@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Resolve each selected model’s reasoning capabilities before starting its child.
+- Honor configured reasoning defaults; otherwise select the first advertised thinking level instead of silently disabling thinking.
+- Verify supported reasoning levels reach real host model requests, including final synthesis.
+
 ## 0.1.1
 
 - Acknowledge `/council` immediately and run its durable command lifecycle independently of the Desktop HTTP request timeout.

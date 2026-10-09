@@ -72,7 +72,7 @@ Council Bridge 是 [DSH Council](https://github.com/a1exsun/dsh-council) 的桌�
 在 **DeepSeek Harness Desktop → Plugins → Add plugin** 中直接粘贴以下发布地址：
 
 ```text
-https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.1/josee0617-dsh-council-bridge-0.1.1.tgz
+https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.2/josee0617-dsh-council-bridge-0.1.2.tgz
 ```
 
 安装并启用 Council Bridge。也可下载 `.tgz` 后输入文件的绝对路径。请使用发布附件；源码压缩包不包含已编译插件。
@@ -81,8 +81,10 @@ https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.1/josee06
 
 Web 安装方式：
 
+议会优先采用模型配置的推理默认值；未配置默认值时，选择模型支持的第一个思考等级。未提供推理能力信息的模型保留供应商默认行为。这样 GLM-5.3 等仅支持思考模式的模型也能完成最终评审；思考可能消耗更多输出令牌。
+
 ```sh
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.1.tgz
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.2.tgz
 npx --yes @deepseek-ai/dsh@0.2.0-rc.2 web
 ```
 

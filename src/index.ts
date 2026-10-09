@@ -208,6 +208,9 @@ function runtimeFor(ctx: Context, parent: Agent, config: Config, copy: CouncilCo
     },
     async runChild(request: ChildRequest) {
       request.signal.throwIfAborted()
+      const model = await ctx.llm.resolveModelInfo(request.model.provider, request.model.model, request.signal)
+      const reasoningEffort = model.reasoning?.defaultEffort
+        ?? model.reasoning?.efforts.find(effort => effort.id !== 'off')?.id
       const run = await childStarts.run({ parent, request, copy }, () => ctx.subagents.start(config.subagentProvider, {
         label: request.label,
         prompt: [{ type: 'text', text: request.prompt }],
@@ -217,6 +220,7 @@ function runtimeFor(ctx: Context, parent: Agent, config: Config, copy: CouncilCo
           provider: request.model.provider,
           model: request.model.model,
           maxTokens: request.maxTokens,
+          ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
         },
         persona: request.persona,
         toolFilter: { allow: WEB_TOOLS },

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { writeFileSync } from 'node:fs'
-import { createUserMessage, LlmAdapter } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 
 export const name = 'council-smoke'
 export const inject = ['commands', 'agents', 'agentPresets', 'llm', 'settings', 'sessions', 'sessionPersistence', 'sessionProjections', 'userQuestions', 'subagents']
@@ -10,6 +10,17 @@ let forbiddenExecutions = 0
 class TestAdapter extends LlmAdapter {
   async listModels(provider) {
     return ['a', 'b', 'c'].map(id => ({ provider, id, name: id }))
+  }
+  async resolveModel(provider, id) {
+    return {
+      provider, id, name: id,
+      ...(id === 'b' ? {} : {
+        reasoning: {
+          efforts: ['off', 'low', 'high'].map(level => ({ id: ReasoningEffortId(level), name: level })),
+          ...(id === 'c' ? { defaultEffort: ReasoningEffortId('high') } : {}),
+        },
+      }),
+    }
   }
   async *stream(options) {
     options.signal?.throwIfAborted()
@@ -21,6 +32,7 @@ class TestAdapter extends LlmAdapter {
       return
     }
     calls.push(options)
+    assert.equal(options.reasoningEffort, { a: 'low', c: 'high' }[options.model], 'Child thinking level was lost before the model request')
     assert(!JSON.stringify(options.messages).includes('PARENT_HISTORY_SENTINEL'), 'Children must start without parent history')
     const allowed = new Set(['web_search', 'web_fetch', 'structured_output'])
     assert((options.tools ?? []).every(tool => allowed.has(tool.name)), 'Unexpected child tool access')

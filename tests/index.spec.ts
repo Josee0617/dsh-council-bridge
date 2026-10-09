@@ -2,6 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { CommandDefinition, CommandExecution, CommandInvocation } from '@deepseek-ai/dsh-commands'
 import type { SubagentRun, SubagentStartRequest } from '@deepseek-ai/dsh-subagent'
+import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, type Config } from '../src/index.js'
 
@@ -91,6 +92,7 @@ function harness(
     },
     llm: {
       listProviders: () => [{ id: 'p', name: 'Provider' }],
+      resolveModelInfo: async (provider: string, id: string) => ({ provider, id, name: id }),
       listModels: async () => [
         { provider: 'p', id: 'a', name: 'A' },
         { provider: 'p', id: 'b', name: 'B' },
@@ -243,6 +245,30 @@ describe('DSH command integration', () => {
       { provider: 'p', model: 'a', maxTokens: 16_384 },
     ])
     expect(test.disposed).toHaveLength(4)
+  })
+
+  it.each([
+    { efforts: ['off', 'low', 'high', 'max'], defaultEffort: undefined, expected: 'low' },
+    { efforts: ['high', 'max'], defaultEffort: undefined, expected: 'high' },
+    { efforts: ['off', 'low', 'medium', 'xhigh'], defaultEffort: 'medium', expected: 'medium' },
+    { efforts: ['off', 'low'], defaultEffort: 'off', expected: 'off' },
+    { efforts: ['off'], defaultEffort: undefined, expected: undefined },
+  ])('passes supported reasoning to answerers and the arbiter: $expected', async ({ efforts, defaultEffort, expected }) => {
+    const test = harness()
+    test.ctx.llm.resolveModelInfo = async (provider, id) => ({
+      provider, id, name: id,
+      ...(id === 'a' ? {
+        reasoning: {
+          efforts: efforts.map(id => ({ id: ReasoningEffortId(id), name: id })),
+          ...(defaultEffort === undefined ? {} : { defaultEffort: ReasoningEffortId(defaultEffort) }),
+        },
+      } : {}),
+    })
+    expect(await test.run()).toMatchObject({ kind: 'success' })
+    expect(test.childRequests.map(request => request.agentOptions?.reasoningEffort)).toEqual([
+      expected, undefined, undefined, expected,
+    ])
+    if (expected === undefined) expect(test.childRequests[0]!.agentOptions).not.toHaveProperty('reasoningEffort')
   })
 
   it('rejects arguments and overlapping runs in the same session', async () => {
