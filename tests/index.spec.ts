@@ -5,6 +5,9 @@ import type { SubagentRun, SubagentStartRequest } from '@deepseek-ai/dsh-subagen
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, type Config } from '../src/index.js'
+import { saveCouncilReport } from '../src/report.js'
+
+vi.mock('../src/report.js', () => ({ saveCouncilReport: vi.fn(async () => '/workspace/council-reports/report.md') }))
 
 const config: Config = {
   answerMaxTokens: 16_384,
@@ -196,7 +199,7 @@ function agentWithHistory(blank = false, listener?: () => PreStepListener | unde
   let idle = Promise.resolve()
   const agent = {
     id: blank ? 'blank-root' : 'root',
-    session: { blank },
+    session: { blank, header: { cwd: '/workspace' } },
     recordedEvents: events,
     ctx: {},
     followup(message: unknown) {
@@ -227,14 +230,19 @@ const invocation = (rawInput = '', agent: Agent = existingAgent) => ({
 }) as unknown as CommandInvocation
 
 describe('DSH command integration', () => {
-  afterEach(() => vi.useRealTimers())
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.mocked(saveCouncilReport).mockReset().mockResolvedValue('/workspace/council-reports/report.md')
+  })
   it('registers /council and runs children with the selected routes and Web-only filter', async () => {
     const test = harness()
     const command = test.command()
     expect(command).toMatchObject({ name: 'council', recordInput: false })
     const result = await test.run()
     expect(result?.kind).toBe('success')
-    expect(result?.text).toContain('Final answer')
+    expect(result?.text).toContain('Council report saved:')
+    expect(result?.text).not.toContain('Final answer')
+    expect(saveCouncilReport).toHaveBeenCalledWith('/workspace', expect.stringContaining('Final answer'), expect.any(AbortSignal))
     expect(test.renamed).toEqual([])
     expect(test.childRequests).toHaveLength(4)
     expect(test.childRequests.every(request => request.toolFilter?.allow?.join(',') === 'web_search,web_fetch')).toBe(true)
@@ -245,6 +253,16 @@ describe('DSH command integration', () => {
       { provider: 'p', model: 'a', maxTokens: 16_384 },
     ])
     expect(test.disposed).toHaveLength(4)
+  })
+
+  it('preserves the complete report in chat when the workspace write fails', async () => {
+    const test = harness()
+    vi.mocked(saveCouncilReport).mockRejectedValueOnce(new Error('Permission denied'))
+    const result = await test.run()
+    expect(result).toMatchObject({ kind: 'success' })
+    expect(result.text).toContain('The Markdown report could not be saved: Permission denied')
+    expect(result.text).toContain('# Council Decision')
+    expect(result.text).toContain('Final answer')
   })
 
   it.each([
@@ -300,7 +318,7 @@ describe('DSH command integration', () => {
     await vi.advanceTimersByTimeAsync(300_001)
     controller.abort(new Error('UI request timed out'))
     release?.(pickerAnswers)
-    expect((await test.executions[0]!).result.text).toContain('Final answer')
+    expect((await test.executions[0]!).result.text).toContain('Council report saved:')
     expect(test.childRequests).toHaveLength(4)
     await test.dispose()
     expect(vi.getTimerCount()).toBe(0)
@@ -376,7 +394,7 @@ describe('DSH command integration', () => {
     expect(test.command()?.description).toBe('运行匿名多模型议会')
     const blankAgent = agentWithHistory(true, test.preStep)
     const result = await test.run(invocation('', blankAgent))
-    expect(result?.text).toContain('# 议会裁决')
+    expect(result?.text).toContain('议会报告已保存')
     expect(test.childRequests[0]?.label).toContain('议会回答')
     expect(test.childRequests[0]?.persona).toContain('简体中文')
     expect(test.renamed).toEqual(['议会'])
@@ -458,7 +476,7 @@ describe('DSH command integration', () => {
     const result = test.run(invocation())
     await vi.advanceTimersByTimeAsync(21)
     expect(await result).toMatchObject({ kind: 'success' })
-    expect((await result).text).toContain('Provider model discovery timed out.')
+    expect(saveCouncilReport).toHaveBeenCalledWith('/workspace', expect.stringContaining('Provider model discovery timed out.'), expect.any(AbortSignal))
     expect(vi.getTimerCount()).toBe(0)
   })
 
@@ -502,9 +520,9 @@ describe('DSH command integration', () => {
 
   it('keeps an in-progress run in its original language while later invocations use the new language', async () => {
     const test = harness(async () => { test.setLocale('zh'); return pickerAnswers })
-    expect((await test.run(invocation())).text).toContain('# Council Decision')
+    expect((await test.run(invocation())).text).toContain('Council report saved:')
     expect(test.command()?.description).toBe('运行匿名多模型议会')
-    expect((await test.run(invocation())).text).toContain('# 议会裁决')
+    expect((await test.run(invocation())).text).toContain('议会报告已保存')
   })
 
   it.each([

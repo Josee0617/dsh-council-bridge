@@ -24,6 +24,7 @@ import {
 } from './council.js'
 import { copyForSettings, type CouncilCopy } from './locales.js'
 import { renderCouncilResult, renderFailureAudit } from './protocol.js'
+import { saveCouncilReport } from './report.js'
 import type { CatalogFailure, ModelDirectory, ModelRef } from './types.js'
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -262,7 +263,14 @@ async function executeCouncil(
       signal,
       copy,
     )
-    result = { kind: 'success', text: renderCouncilResult(council, copy) }
+    const report = renderCouncilResult(council, copy)
+    try {
+      const path = await saveCouncilReport(invocation.agent.session.header.cwd, report, signal)
+      result = { kind: 'success', text: copy.reportSaved(path) }
+    } catch (error: unknown) {
+      if (signal.aborted) throw error
+      result = { kind: 'success', text: `${copy.reportSaveFailed(messageOf(error, copy.unknownFailure))}\n\n${report}` }
+    }
   } catch (error: unknown) {
     const code = errorCode(error)
     if (signal.aborted || code === 'ASK_CANCELLED' || code === 'ASK_ABORTED') {

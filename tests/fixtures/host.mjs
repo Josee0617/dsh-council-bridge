@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { createUserMessage, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 
 export const name = 'council-smoke'
@@ -109,7 +110,7 @@ export function apply(ctx) {
       process.stdout.write(`SMOKE ${locale} invoking council\n`)
       const finished = new Promise(resolve => {
         const dispose = ctx.on('session/event', (session, event) => {
-          if (session !== agent.session || event.type !== 'command/done' || !event.data.text?.includes('HOST_VERIFIED_FINAL')) return
+          if (session !== agent.session || event.type !== 'command/done' || !event.data.text?.includes('council-reports')) return
           dispose()
           resolve(event.data)
         }, { global: true })
@@ -121,16 +122,22 @@ export function apply(ctx) {
       uiRequest.abort(new Error('Simulated UI request expiry'))
       const result = await finished
       assert.equal(result.kind, 'success', result.text)
-      assert(result.text.includes(locale === 'en' ? '# Council Decision' : '# 议会裁决'))
+      const reportPath = result.text.split('\n')[1]
+      assert.equal(dirname(reportPath), join(process.cwd(), 'council-reports'))
+      const reportText = readFileSync(reportPath, 'utf8')
+      assert(reportText.includes('HOST_VERIFIED_FINAL'))
+      assert(reportText.includes(locale === 'en' ? '# Council Decision' : '# 议会裁决'))
+      assert(!result.text.includes('HOST_VERIFIED_FINAL'), 'Chat should show a compact saved-file message')
       const events = agent.session.snapshotEvents()
-      assert(events.some(event => event.type === 'command/done' && event.data.text.includes('HOST_VERIFIED_FINAL')))
+      assert(events.some(event => event.type === 'command/done' && event.data.text.includes(reportPath)))
       assert.equal(events.filter(event => event.type === 'step/start').length, stepsBefore, 'Unexpected parent model completion')
       await ctx.sessions.flush(agent.session)
       await handle.dispose()
       const stored = await ctx.sessionPersistence.open(agent.id, 'read')
       try {
         const reloaded = await stored.read()
-        assert(reloaded.events.some(event => event.type === 'command/done' && event.data.text?.includes('HOST_VERIFIED_FINAL')), 'Final result must survive cold reload')
+        assert(reloaded.events.some(event => event.type === 'command/done' && event.data.text?.includes(reportPath)), 'Report location must survive cold reload')
+        assert.equal(readFileSync(reportPath, 'utf8'), reportText, 'Saved report must survive session reload')
       } finally {
         await stored.close()
       }
@@ -139,6 +146,7 @@ export function apply(ctx) {
     assert.equal(guardChecks.length, 8)
     assert.equal(forbiddenExecutions, 0)
     assert.equal(calls.length, 8)
+    assert.equal(readdirSync(join(process.cwd(), 'council-reports')).length, 2)
     writeFileSync('report.json', JSON.stringify({ calls: calls.length, guardChecks: guardChecks.length, coldReloads: 2, locales: ['en', 'zh'] }))
     process.stdout.write('COUNCIL_HOST_OK\n')
     exit(0)

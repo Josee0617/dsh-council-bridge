@@ -72,19 +72,21 @@ Council Bridge 是 [DSH Council](https://github.com/a1exsun/dsh-council) 的桌�
 在 **DeepSeek Harness Desktop → Plugins → Add plugin** 中直接粘贴以下发布地址：
 
 ```text
-https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.2/josee0617-dsh-council-bridge-0.1.2.tgz
+https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.3/josee0617-dsh-council-bridge-0.1.3.tgz
 ```
 
 安装并启用 Council Bridge。也可下载 `.tgz` 后输入文件的绝对路径。请使用发布附件；源码压缩包不包含已编译插件。
 
 在聊天中单独发送 `/council` 打开设置表单。运行会在命令确认后继续，不会因最初的界面请求超时而中断。使用 `/council cancel` 停止当前会话的运行。空白会话会立即保留，以显示进度和错误。关闭会话或卸载插件会停止运行。
 
+完成的报告会以独立 Markdown 文件保存到当前聊天工作区的 `council-reports/` 目录。聊天显示文件位置；在编辑器中打开 `.md` 文件阅读报告。如果工作区不可用或保存失败，完整报告仍会显示在聊天中。更新插件后，请彻底退出并重新打开 Desktop。
+
 Web 安装方式：
 
 议会优先采用模型配置的推理默认值；未配置默认值时，选择模型支持的第一个思考等级。未提供推理能力信息的模型保留供应商默认行为。这样 GLM-5.3 等仅支持思考模式的模型也能完成最终评审；思考可能消耗更多输出令牌。
 
 ```sh
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.2.tgz
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.3.tgz
 npx --yes @deepseek-ai/dsh@0.2.0-rc.2 web
 ```
 
@@ -136,12 +138,6 @@ npx --yes @deepseek-ai/dsh@0.2.0-rc.2 web
 </td>
 </tr>
 </table>
-
-## 需要更多 AI 模型？
-
-<a href="https://app.codebestie.org/register?aff=RA3Z7CMJW2SS">
-<img src="docs/assets/codebestie-banner.zh.svg" width="100%" alt="CodeBestie — 探索更多模型服务。注册时请填写邀请码 RA3Z7CMJW2SS。">
-</a>
 
 ## 配置
 

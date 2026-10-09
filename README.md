@@ -72,7 +72,7 @@ Install [DeepSeek Harness (dsh)](https://www.deepseek.com/harness/) by following
 In **DeepSeek Harness Desktop → Plugins → Add plugin**, paste this release URL:
 
 ```text
-https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.2/josee0617-dsh-council-bridge-0.1.2.tgz
+https://github.com/Josee0617/dsh-council-bridge/releases/download/v0.1.3/josee0617-dsh-council-bridge-0.1.3.tgz
 ```
 
 Install and enable **Council Bridge**. You can also download the `.tgz` and use its absolute path. Use the release asset; the source archive does not contain the compiled plugin.
@@ -81,10 +81,12 @@ Send `/council` by itself to open the setup form. The run continues in the chat 
 
 Council honors each model’s configured reasoning default. When no default is configured, it selects the first advertised thinking level. Models without reasoning metadata keep their provider default. This lets thinking-only models such as GLM-5.3 complete the final review; thinking may use more output tokens.
 
+Completed reports are saved as unique Markdown files in `council-reports/` inside the current chat’s workspace. Chat shows the file location instead of the full report. Open the `.md` file in your editor to read it. If the workspace is unavailable or saving fails, the complete report remains in chat. Fully quit and reopen Desktop after updating the plugin.
+
 For the supported Web runtime:
 
 ```sh
-npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.2.tgz
+npx --yes @deepseek-ai/dsh@0.2.0-rc.2 plugin --profile web add ./josee0617-dsh-council-bridge-0.1.3.tgz
 npx --yes @deepseek-ai/dsh@0.2.0-rc.2 web
 ```
 
@@ -136,12 +138,6 @@ Enter this command in a DSH Desktop or Web conversation:
 </td>
 </tr>
 </table>
-
-## Need more AI models?
-
-<a href="https://app.codebestie.org/register?aff=RA3Z7CMJW2SS">
-<img src="docs/assets/codebestie-banner.svg" width="100%" alt="CodeBestie — explore more model providers. Register with invitation code RA3Z7CMJW2SS.">
-</a>
 
 ## Configuration
 

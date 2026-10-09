@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- Save completed Council reports as unique Markdown files in the current chat’s workspace.
+- Show a short saved-file confirmation in chat, preserving the full report there if saving fails.
+- Remove the model-provider promotional section from both READMEs and exclude its banners from the package.
+
 ## 0.1.2
 
 - Resolve each selected model’s reasoning capabilities before starting its child.
